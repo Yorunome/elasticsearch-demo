@@ -20,5 +20,6 @@ public class UserDTO {
     private String name;
     private Date creationDate = new Date();
     private Map<String, String> userSettings = new HashMap<>();
+    private String description;
 
 }

@@ -1,5 +1,6 @@
 package com.example.ElasticSearchOperation.controller;
 
+import com.example.ElasticSearchOperation.dto.SearchDTO;
 import com.example.ElasticSearchOperation.dto.UserDTO;
 import com.example.ElasticSearchOperation.entity.Employee;
 import com.example.ElasticSearchOperation.service.ElasticService;
@@ -58,10 +59,10 @@ public class UserController {
 
     }
 
-    @GetMapping("/search/{terms}")
-    public List <Employee> searchByDetails(@PathVariable final String terms){
+    @PostMapping("/search")
+    public List <Employee> searchByDetails(@RequestBody SearchDTO searchDTO){
 
-        return elasticService.searchByDetails(terms);
+        return elasticService.searchByDetails(searchDTO.getTerms(), searchDTO.getMinMatchCriteria());
 
     }
 

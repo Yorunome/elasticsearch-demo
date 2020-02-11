@@ -136,10 +136,10 @@ public class ElasticServiceImpl implements ElasticService {
     }
 
     @Override
-    public List<Employee> searchByDetails(String terms) {
+    public List<Employee> searchByDetails(String terms, String minMatchCriteria) {
 
         SearchQuery searchQuery = new NativeSearchQueryBuilder()
-                .withQuery(QueryBuilders.matchQuery("name", terms).minimumShouldMatch("%75"))
+                .withQuery(QueryBuilders.matchQuery("description", terms).minimumShouldMatch(minMatchCriteria))
                 .build();
 
         List<Employee> employees = elasticsearchTemplate.queryForList(searchQuery, Employee.class);

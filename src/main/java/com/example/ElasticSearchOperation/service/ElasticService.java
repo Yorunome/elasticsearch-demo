@@ -13,7 +13,7 @@ public interface ElasticService {
     Map<String, Object> searchByName(final String field);
     String update(final String id);
     String delete(final String id);
-    List<Employee> searchByDetails(final String terms);
+    List<Employee> searchByDetails(final String terms, String minMatchCriteria);
 
 
 }

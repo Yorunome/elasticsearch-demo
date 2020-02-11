@@ -24,6 +24,7 @@ public class Employee {
     private String userId;
     private String name;
     private Date creationDate;
+    private String description;
 
     @Field(type = FieldType.Object, includeInParent = true)
     private Map<String, String> userSettings = new HashMap<>();
