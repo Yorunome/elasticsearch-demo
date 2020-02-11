@@ -1,4 +1,4 @@
-package com.example.ElasticSearchOperation.entity;
+package com.example.ElasticSearchOperation.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class UserDTO {
 
     private String userId;
 

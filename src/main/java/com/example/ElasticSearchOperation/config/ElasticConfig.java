@@ -1,13 +1,11 @@
 package com.example.ElasticSearchOperation.config;
-
-
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.springframework.context.annotation.Configuration;
 
 import java.net.InetAddress;
@@ -29,22 +27,25 @@ public class ElasticConfig {
         return port;
     }
 
+    @Value("${elasticsearch.home:/usr/local/Cellar/elasticsearch/5.6.0}")
+    private String elasticsearchHome;
+
+    @Value("${elasticsearch.cluster.name:elasticsearch_rajeshwari}")
+    private String clusterName;
+
     @Bean
-    public Client client(){
-
-        TransportClient client = null;
-
-        try{
-
-            System.out.println("host:"+ host+"port:"+port);
-            client = new PreBuiltTransportClient(Settings.EMPTY)
-                    .addTransportAddress(new TransportAddress(InetAddress.getByName(host), port));
+    public Client client() {
+        Settings elasticsearchSettings = Settings.builder()
+                .put("client.transport.sniff", true)
+                .put("path.home", elasticsearchHome)
+                .put("cluster.name", clusterName).build();
+        TransportClient client = new PreBuiltTransportClient(elasticsearchSettings);
+        try {
+            client.addTransportAddress(new TransportAddress(InetAddress.getByName("127.0.0.1"), 9300));     //transport layer for elastic
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-
         return client;
-
     }
 
 }

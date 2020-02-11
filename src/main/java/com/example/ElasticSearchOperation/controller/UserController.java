@@ -1,6 +1,6 @@
 package com.example.ElasticSearchOperation.controller;
 
-import com.example.ElasticSearchOperation.entity.User;
+import com.example.ElasticSearchOperation.dto.UserDTO;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -30,13 +30,14 @@ public class UserController {
     Client client;
 
     @PostMapping("/create")
-    public String create(@RequestBody User user) throws IOException {
+    public String create(@RequestBody UserDTO userDTO) throws IOException {
 
-        IndexResponse response = client.prepareIndex("users", "employee", user.getUserId())
+
+        IndexResponse response = client.prepareIndex("users", "employee", userDTO.getUserId())
                 .setSource(jsonBuilder()
                         .startObject()
-                        .field("name", user.getName())
-                        .field("userSettings", user.getUserSettings())
+                        .field("name", userDTO.getName())
+                        .field("userSettings", userDTO.getUserSettings())
                         .endObject()
                 ).get();
         System.out.println("response id:"+response.getId());
@@ -61,6 +62,7 @@ public class UserController {
         SearchResponse response = client.prepareSearch("users")
                 .setTypes("employee")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
+                //.setQuery(QueryBuilders.matchQuery("name", field))
                 .setQuery(QueryBuilders.matchQuery("name", field))
                 .get();
 
