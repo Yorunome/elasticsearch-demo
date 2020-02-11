@@ -17,11 +17,8 @@ import java.util.Map;
 public class UserDTO {
 
     private String userId;
-
     private String name;
-
     private Date creationDate = new Date();
-
     private Map<String, String> userSettings = new HashMap<>();
 
 }
