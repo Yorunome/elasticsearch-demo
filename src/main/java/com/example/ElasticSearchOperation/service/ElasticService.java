@@ -16,6 +16,7 @@ public interface ElasticService {
     String delete(final String id);
     List<Employee> searchByDetails(final String terms, String minMatchCriteria);
     Word checkSpellErrors(String word);
+    List <Employee> improvedSearch(String terms, String minMatchCriteria);
 
 
 }

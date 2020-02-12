@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -150,6 +151,28 @@ public class ElasticServiceImpl implements ElasticService {
 
         DeleteResponse deleteResponse = client.prepareDelete("users", "employee", id).get();
         return deleteResponse.getResult().toString();
+
+    }
+
+    @Override
+    public List <Employee> improvedSearch(String terms, String minMatchCriteria){
+
+        String[] wordList = terms.split(" ");
+        List <String> searchWords = Arrays.asList(wordList);
+        List <String> spellCheckedWords = new ArrayList<>();
+
+        for (String word : searchWords){
+
+            List <String> getWords = checkSpellErrors(word).getSpellCheckWords();
+            if (!(getWords.isEmpty())) {
+                String suggestedText = getWords.get(0);
+                spellCheckedWords.add(suggestedText);
+            }
+            else spellCheckedWords.add(word);
+        }
+
+        String finalSearchString = spellCheckedWords.stream().collect(Collectors.joining(" "));
+        return searchByDetails(finalSearchString, minMatchCriteria);
 
     }
 

@@ -74,6 +74,13 @@ public class UserController {
 
     }
 
+    @PostMapping("/spellCheckSearch")
+    public List <Employee> spellCheckSearch(@RequestBody SearchDTO searchDTO){
+
+        return elasticService.improvedSearch(searchDTO.getTerms(), searchDTO.getMinMatchCriteria());
+
+    }
+
 
 }
 
