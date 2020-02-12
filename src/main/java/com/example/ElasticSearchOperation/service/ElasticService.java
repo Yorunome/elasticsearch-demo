@@ -1,7 +1,8 @@
 package com.example.ElasticSearchOperation.service;
 
 import com.example.ElasticSearchOperation.dto.UserDTO;
-import com.example.ElasticSearchOperation.entity.Employee;
+import com.example.ElasticSearchOperation.model.Employee;
+import com.example.ElasticSearchOperation.model.Word;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ public interface ElasticService {
     String update(final String id);
     String delete(final String id);
     List<Employee> searchByDetails(final String terms, String minMatchCriteria);
+    Word checkSpellErrors(String word);
 
 
 }

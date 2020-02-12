@@ -2,7 +2,8 @@ package com.example.ElasticSearchOperation.controller;
 
 import com.example.ElasticSearchOperation.dto.SearchDTO;
 import com.example.ElasticSearchOperation.dto.UserDTO;
-import com.example.ElasticSearchOperation.entity.Employee;
+import com.example.ElasticSearchOperation.model.Employee;
+import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.service.ElasticService;
 import org.elasticsearch.client.Client;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +66,14 @@ public class UserController {
         return elasticService.searchByDetails(searchDTO.getTerms(), searchDTO.getMinMatchCriteria());
 
     }
+
+    @GetMapping("/spellCheck/{word}")
+    public Word getWords(@PathVariable String word) throws Exception{
+
+        return elasticService.checkSpellErrors(word);
+
+    }
+
 
 }
 

@@ -1,29 +1,39 @@
 package com.example.ElasticSearchOperation.impl;
 
-import com.example.ElasticSearchOperation.ElasticSearchOperationApplication;
+import com.example.ElasticSearchOperation.config.ElasticConfig;
 import com.example.ElasticSearchOperation.dto.UserDTO;
-import com.example.ElasticSearchOperation.entity.Employee;
+import com.example.ElasticSearchOperation.model.Employee;
+import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.repository.EmployeeRepository;
 import com.example.ElasticSearchOperation.service.ElasticService;
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.SuggestionBuilder;
+import org.elasticsearch.search.suggest.term.TermSuggestion;
+import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.config.ElasticsearchConfigurationSupport;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +46,22 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 @Service
 public class ElasticServiceImpl implements ElasticService {
 
-    @Autowired
-    Client client;
+    public static final String TEST_SUGGESTER = "test_suggester";
 
     @Autowired
-    EmployeeRepository employeeRepository;
+    private Client client;
 
     @Autowired
-    ElasticsearchOperations elasticsearchTemplate;
+    private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private ElasticsearchOperations elasticsearchTemplate;
+
+    @Autowired
+    private ElasticsearchOperations operations;
+
+    @Autowired
+    private ElasticConfig config;
 
     @Override
     public String createEmployee(UserDTO userDTO) {
@@ -142,8 +160,57 @@ public class ElasticServiceImpl implements ElasticService {
                 .withQuery(QueryBuilders.matchQuery("description", terms).minimumShouldMatch(minMatchCriteria))
                 .build();
 
-        List<Employee> employees = elasticsearchTemplate.queryForList(searchQuery, Employee.class);
+        SearchQuery searchQuery1 = new NativeSearchQueryBuilder().withQuery(QueryBuilders.matchQuery("description", terms)
+                .fuzziness(Fuzziness.AUTO)
+                .prefixLength(3)
+                .minimumShouldMatch(minMatchCriteria))
+                .build();
+
+
+        SearchQuery searchQuery2 = null;
+
+                searchQuery2 = new NativeSearchQueryBuilder().withQuery(QueryBuilders
+                        .nestedQuery("userSettings",
+                                     QueryBuilders.termQuery("hobby", "bowling"),
+                                     ScoreMode.Max))
+                        .build();
+
+
+
+
+        List<Employee> employees = elasticsearchTemplate.queryForList(searchQuery1, Employee.class);
 
         return employees;
     }
+
+    @Override
+    public Word checkSpellErrors(String word){
+
+        List<String> suggestedWords = new ArrayList<>();
+        Word spellCheckWord = new Word(word, suggestedWords);
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        SuggestionBuilder termSuggestionBuilder = SuggestBuilders.termSuggestion("description").text(word);
+        SuggestBuilder suggestBuilder = new SuggestBuilder();
+        suggestBuilder.addSuggestion("suggest_user", termSuggestionBuilder);
+        searchSourceBuilder.suggest(suggestBuilder);
+
+        SearchResponse searchResponse = config.client().prepareSearch("users_ver_1").suggest(suggestBuilder).execute().actionGet();
+        Suggest suggestions = searchResponse.getSuggest();
+
+        TermSuggestion termSuggestion = suggestions.getSuggestion("suggest_user");
+        for (TermSuggestion.Entry entry: termSuggestion.getEntries()) {
+            for (TermSuggestion.Entry.Option option: entry) {
+
+                suggestedWords.add(option.getText().string());
+
+            }
+
+        }
+
+        spellCheckWord.setSpellCheckWords(suggestedWords);
+        return spellCheckWord;
+
+    }
+
 }

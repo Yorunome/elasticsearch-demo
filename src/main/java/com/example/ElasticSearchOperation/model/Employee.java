@@ -1,4 +1,4 @@
-package com.example.ElasticSearchOperation.entity;
+package com.example.ElasticSearchOperation.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,7 +17,7 @@ import java.util.Map;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(indexName = "users", type = "employee")
+@Document(indexName = "users_ver_1", type = "employee")
 public class Employee {
 
     @Id
@@ -26,7 +26,7 @@ public class Employee {
     private Date creationDate;
     private String description;
 
-    @Field(type = FieldType.Object, includeInParent = true)
+    @Field(type = FieldType.Nested, includeInParent = true)
     private Map<String, String> userSettings = new HashMap<>();
 
 }
