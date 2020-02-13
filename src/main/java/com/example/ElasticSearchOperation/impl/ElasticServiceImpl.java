@@ -1,12 +1,18 @@
 package com.example.ElasticSearchOperation.impl;
 
 import com.example.ElasticSearchOperation.config.ElasticConfig;
+import com.example.ElasticSearchOperation.dto.HotelDTO;
+import com.example.ElasticSearchOperation.dto.SearchDTO;
+import com.example.ElasticSearchOperation.dto.UpdateDTO;
 import com.example.ElasticSearchOperation.dto.UserDTO;
 import com.example.ElasticSearchOperation.model.Employee;
+import com.example.ElasticSearchOperation.model.Hotel;
 import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.repository.EmployeeRepository;
+import com.example.ElasticSearchOperation.repository.HotelRepository;
 import com.example.ElasticSearchOperation.service.ElasticService;
 import org.apache.lucene.search.join.ScoreMode;
+import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
@@ -15,6 +21,7 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -26,8 +33,8 @@ import org.elasticsearch.search.suggest.term.TermSuggestion;
 import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.elasticsearch.config.ElasticsearchConfigurationSupport;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
@@ -64,30 +71,27 @@ public class ElasticServiceImpl implements ElasticService {
     @Autowired
     private ElasticConfig config;
 
+    @Autowired
+    private HotelRepository hotelRepository;
+
     @Override
     public String createEmployee(UserDTO userDTO) {
-
-//        IndexResponse response = null;
-//        try {
-//            response = client.prepareIndex("users", "employee", userDTO.getUserId())
-//                    .setSource(jsonBuilder()
-//                            .startObject()
-//                            .field("name", userDTO.getName())
-//                            .field("userSettings", userDTO.getUserSettings())
-//                            .endObject()
-//                    ).get();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        System.out.println("response id:"+response.getId());
-//        return response.getResult().toString();
 
         Employee employee = new Employee();
         BeanUtils.copyProperties(userDTO, employee);
         employeeRepository.save(employee);
         return "Employee added";
 
+    }
 
+
+    @Override
+    public String createHotelSearch(HotelDTO hotelDTO) {
+
+        Hotel hotel = new Hotel();
+        BeanUtils.copyProperties(hotelDTO, hotel);
+        hotelRepository.save(hotel);
+        return "Hotel added";
 
     }
 
@@ -107,7 +111,6 @@ public class ElasticServiceImpl implements ElasticService {
         SearchResponse response = client.prepareSearch("users")
                 .setTypes("employee")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
-                //.setQuery(QueryBuilders.matchQuery("name", field))
                 .setQuery(QueryBuilders.matchQuery("name", field))
                 .get();
 
@@ -118,16 +121,16 @@ public class ElasticServiceImpl implements ElasticService {
     }
 
     @Override
-    public String update(String id) {
+    public String update(UpdateDTO updateDTO) {
 
         UpdateRequest updateRequest = new UpdateRequest();
         try {
-            updateRequest.index("users")
-                    .type("employee")
-                    .id(id)
+            updateRequest.index("autocomplete-v5-1")
+                    .type("hotel")
+                    .id(updateDTO.getId())
                     .doc(jsonBuilder()
                             .startObject()
-                            .field("name", "Rajesh")
+                            .field(updateDTO.getFieldName(), updateDTO.getFieldValue())
                             .endObject());
         } catch (IOException e) {
             e.printStackTrace();
@@ -155,9 +158,9 @@ public class ElasticServiceImpl implements ElasticService {
     }
 
     @Override
-    public List <Employee> improvedSearch(String terms, String minMatchCriteria){
+    public Map<String,Object> improvedSearch(SearchDTO searchDTO){
 
-        String[] wordList = terms.split(" ");
+        String[] wordList = searchDTO.getTerms().split(" ");
         List <String> searchWords = Arrays.asList(wordList);
         List <String> spellCheckedWords = new ArrayList<>();
 
@@ -172,38 +175,72 @@ public class ElasticServiceImpl implements ElasticService {
         }
 
         String finalSearchString = spellCheckedWords.stream().collect(Collectors.joining(" "));
-        return searchByDetails(finalSearchString, minMatchCriteria);
+        return searchByDetails(finalSearchString, searchDTO);
 
     }
 
-    @Override
-    public List<Employee> searchByDetails(String terms, String minMatchCriteria) {
 
-        SearchQuery searchQuery = new NativeSearchQueryBuilder()
-                .withQuery(QueryBuilders.matchQuery("description", terms).minimumShouldMatch(minMatchCriteria))
-                .build();
+    @Override
+    public Map<String,Object> searchByDetails(String terms, SearchDTO searchDTO) {
 
         SearchQuery searchQuery1 = new NativeSearchQueryBuilder().withQuery(QueryBuilders.matchQuery("description", terms)
                 .fuzziness(Fuzziness.AUTO)
                 .prefixLength(3)
-                .minimumShouldMatch(minMatchCriteria))
+                .minimumShouldMatch(searchDTO.getMinMatchCriteria()))
                 .build();
 
 
-        SearchQuery searchQuery2 = null;
-
-                searchQuery2 = new NativeSearchQueryBuilder().withQuery(QueryBuilders
+        SearchQuery searchQuery2 = new NativeSearchQueryBuilder().withQuery(QueryBuilders
                         .nestedQuery("userSettings",
-                                     QueryBuilders.termQuery("hobby", "bowling"),
-                                     ScoreMode.Max))
+                                     QueryBuilders.matchQuery("hobby", terms),
+                                     ScoreMode.Avg))
                         .build();
 
+        SearchQuery searchQuery3 = new NativeSearchQueryBuilder()
+                                        .withQuery(QueryBuilders
+                                                .nestedQuery("userSettings",
+                                                        QueryBuilders.boolQuery()
+                                                                  .must(QueryBuilders
+                                                                          .multiMatchQuery(terms, "userSettings.gender", "userSettings.hobby", "userSettings.occupation")
+                                                                                .fuzziness(Fuzziness.AUTO)
+                                                                                .prefixLength(3)
+                                                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria())),
+                                                                          ScoreMode.Max))
+//
+//                                        .withQuery(QueryBuilders.multiMatchQuery(terms, "name", "description")
+//                                                .fuzziness(Fuzziness.AUTO)
+//                                                .prefixLength(3)
+//                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria()))
+                                        .build();
+
+        SearchQuery searchQuery4 = new NativeSearchQueryBuilder()
+                                      .withQuery(QueryBuilders.multiMatchQuery(terms, "name", "locationName")
+                                                                               .fuzziness(Fuzziness.AUTO)
+                                                                               .prefixLength(3)
+                                                                               .minimumShouldMatch(searchDTO.getMinMatchCriteria())
+                                                                              // .tieBreaker(0.5F)
+                                                                               .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS))
+                                      .build();
+
+        //List<Employee> employees = elasticsearchTemplate.queryForList(searchQuery4, Employee.class);
+        List <Hotel> hotels = elasticsearchTemplate.queryForList(searchQuery4, Hotel.class);
+
+        Map<String,Object> map = null;
+        SearchResponse response = client.prepareSearch("autocomplete-v5-1")
+                .setTypes("hotel")
+                .setSearchType(SearchType.QUERY_THEN_FETCH)
+                .setQuery(QueryBuilders.matchQuery("name", terms))
+                .get();
+
+        List<SearchHit> searchHits = new ArrayList<>();
+
+        if (!(response.getHits().equals(0)))
+            searchHits = Arrays.asList(response.getHits().getHits());
+        if (!(map.isEmpty()))
+            map =   searchHits.get(0).getSourceAsMap();
 
 
-
-        List<Employee> employees = elasticsearchTemplate.queryForList(searchQuery1, Employee.class);
-
-        return employees;
+        return map;
     }
 
     @Override
@@ -213,12 +250,16 @@ public class ElasticServiceImpl implements ElasticService {
         Word spellCheckWord = new Word(word, suggestedWords);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        SuggestionBuilder termSuggestionBuilder = SuggestBuilders.termSuggestion("description").text(word);
+        SuggestionBuilder termSuggestionBuilder = SuggestBuilders.termSuggestion("name").text(word);
         SuggestBuilder suggestBuilder = new SuggestBuilder();
         suggestBuilder.addSuggestion("suggest_user", termSuggestionBuilder);
         searchSourceBuilder.suggest(suggestBuilder);
 
-        SearchResponse searchResponse = config.client().prepareSearch("users_ver_1").suggest(suggestBuilder).execute().actionGet();
+        SearchResponse searchResponse = config.client()
+                                        .prepareSearch("autocomplete-v5-1")
+                                        .suggest(suggestBuilder)
+                                        .execute()
+                                        .actionGet();
         Suggest suggestions = searchResponse.getSuggest();
 
         TermSuggestion termSuggestion = suggestions.getSuggestion("suggest_user");

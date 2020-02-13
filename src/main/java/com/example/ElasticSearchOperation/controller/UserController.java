@@ -1,8 +1,11 @@
 package com.example.ElasticSearchOperation.controller;
 
+import com.example.ElasticSearchOperation.dto.HotelDTO;
 import com.example.ElasticSearchOperation.dto.SearchDTO;
+import com.example.ElasticSearchOperation.dto.UpdateDTO;
 import com.example.ElasticSearchOperation.dto.UserDTO;
 import com.example.ElasticSearchOperation.model.Employee;
+import com.example.ElasticSearchOperation.model.Hotel;
 import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.service.ElasticService;
 import org.elasticsearch.client.Client;
@@ -18,15 +21,22 @@ import java.util.Map;
 public class UserController {
 
     @Autowired
-    Client client;
+    private Client client;
 
     @Autowired
-    ElasticService elasticService;
+    private ElasticService elasticService;
 
     @PostMapping("/createEmployee")
     public String createEmployee(@RequestBody UserDTO userDTO) {
 
         return elasticService.createEmployee(userDTO);
+
+    }
+
+    @PostMapping("/createHotel")
+    public String createHotelLocation(@RequestBody HotelDTO hotelDTO){
+
+        return elasticService.createHotelSearch(hotelDTO);
 
     }
 
@@ -46,10 +56,10 @@ public class UserController {
     }
 
 
-    @GetMapping("/update/{id}")
-    public String update(@PathVariable final String id){
+    @PostMapping("/update")
+    public String update(@RequestBody UpdateDTO updateDTO){
 
-        return elasticService.update(id);
+        return elasticService.update(updateDTO);
 
     }
 
@@ -61,9 +71,9 @@ public class UserController {
     }
 
     @PostMapping("/search")
-    public List <Employee> searchByDetails(@RequestBody SearchDTO searchDTO){
+    public Map<String,Object> searchByDetails(@RequestBody SearchDTO searchDTO){
 
-        return elasticService.searchByDetails(searchDTO.getTerms(), searchDTO.getMinMatchCriteria());
+        return elasticService.searchByDetails(searchDTO.getTerms(), searchDTO);
 
     }
 
@@ -75,9 +85,9 @@ public class UserController {
     }
 
     @PostMapping("/spellCheckSearch")
-    public List <Employee> spellCheckSearch(@RequestBody SearchDTO searchDTO){
+    public Map<String,Object> spellCheckSearch(@RequestBody SearchDTO searchDTO){
 
-        return elasticService.improvedSearch(searchDTO.getTerms(), searchDTO.getMinMatchCriteria());
+        return elasticService.improvedSearch(searchDTO);
 
     }
 
