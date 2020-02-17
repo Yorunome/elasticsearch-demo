@@ -126,7 +126,7 @@ public class ElasticServiceImpl implements ElasticService {
 
         UpdateRequest updateRequest = new UpdateRequest();
         try {
-            updateRequest.index("autocomplete-v5-1")
+            updateRequest.index("autocomplete-v5-4")
                     .type("hotel")
                     .id(updateDTO.getId())
                     .doc(jsonBuilder()
@@ -204,12 +204,12 @@ public class ElasticServiceImpl implements ElasticService {
 //                                        .build();
 
         SearchQuery searchQuery4 = new NativeSearchQueryBuilder()
-                                      .withQuery(QueryBuilders.matchQuery("name", terms)
+                                      .withQuery(QueryBuilders.multiMatchQuery(terms, "name", "locationName")
                                                                                .fuzziness(Fuzziness.AUTO)
                                                                                .prefixLength(3)
-                                                                               .minimumShouldMatch(searchDTO.getMinMatchCriteria()))
-                                                                              // .tieBreaker(0.5F)
-                                                                               //.type(MultiMatchQueryBuilder.Type.CROSS_FIELDS))
+                                                                               .minimumShouldMatch(searchDTO.getMinMatchCriteria())
+                                                                               .tieBreaker(0.5F)
+                                                                               .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS))
                                       .build();
 
         List <Hotel> hotels = elasticsearchTemplate.queryForList(searchQuery4, Hotel.class);
@@ -226,9 +226,9 @@ public class ElasticServiceImpl implements ElasticService {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         SuggestionBuilder termSuggestionBuilder = SuggestBuilders.termSuggestion("name")
                                                                  .text(word)
-                                                                 //.analyzer("word_join_analyzer")
+                                                                 .analyzer("word_join_analyzer")
                                                                  .minDocFreq(0.1f)
-                                                                 //.suggestMode(TermSuggestionBuilder.SuggestMode.ALWAYS)
+                                                                 .suggestMode(TermSuggestionBuilder.SuggestMode.ALWAYS)
                                                                  .minWordLength(3);
 
         SuggestBuilder suggestBuilder = new SuggestBuilder();
@@ -237,7 +237,7 @@ public class ElasticServiceImpl implements ElasticService {
 
         SearchResponse searchResponse = config.client()
                                         .prepareSearch()
-                                        .setIndices("autocomplete-v5-3").setTypes("hotel")
+                                        .setIndices("autocomplete-v5-4").setTypes("hotel")
                                         .suggest(suggestBuilder)
                                         .execute()
                                         .actionGet();
