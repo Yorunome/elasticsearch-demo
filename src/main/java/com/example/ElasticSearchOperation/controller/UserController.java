@@ -4,7 +4,7 @@ import com.example.ElasticSearchOperation.dto.HotelDTO;
 import com.example.ElasticSearchOperation.dto.SearchDTO;
 import com.example.ElasticSearchOperation.dto.UpdateDTO;
 import com.example.ElasticSearchOperation.dto.UserDTO;
-import com.example.ElasticSearchOperation.model.Employee;
+//import com.example.ElasticSearchOperation.model.Employee;
 import com.example.ElasticSearchOperation.model.Hotel;
 import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.service.ElasticService;
@@ -26,12 +26,12 @@ public class UserController {
     @Autowired
     private ElasticService elasticService;
 
-    @PostMapping("/createEmployee")
-    public String createEmployee(@RequestBody UserDTO userDTO) {
-
-        return elasticService.createEmployee(userDTO);
-
-    }
+//    @PostMapping("/createEmployee")
+//    public String createEmployee(@RequestBody UserDTO userDTO) {
+//
+//        return elasticService.createEmployee(userDTO);
+//
+//    }
 
     @PostMapping("/createHotel")
     public String createHotelLocation(@RequestBody HotelDTO hotelDTO){
@@ -40,20 +40,20 @@ public class UserController {
 
     }
 
-    @GetMapping("/view/{id}")
-    public Map<String, Object> view(@PathVariable final String id) {
+//    @GetMapping("/view/{id}")
+//    public Map<String, Object> view(@PathVariable final String id) {
+//
+//        return elasticService.view(id);
+//
+//    }
 
-        return elasticService.view(id);
 
-    }
-
-
-    @GetMapping("/view/name/{field}")
-    public Map<String, Object> searchByName(@PathVariable final String field) {
-
-        return elasticService.searchByName(field);
-
-    }
+//    @GetMapping("/view/name/{field}")
+//    public Map<String, Object> searchByName(@PathVariable final String field) {
+//
+//        return elasticService.searchByName(field);
+//
+//    }
 
 
     @PostMapping("/update")
@@ -63,15 +63,15 @@ public class UserController {
 
     }
 
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable final String id) {
-
-        return elasticService.delete(id);
-
-    }
+//    @GetMapping("/delete/{id}")
+//    public String delete(@PathVariable final String id) {
+//
+//        return elasticService.delete(id);
+//
+//    }
 
     @PostMapping("/search")
-    public Map<String,Object> searchByDetails(@RequestBody SearchDTO searchDTO){
+    public List<Hotel> searchByDetails(@RequestBody SearchDTO searchDTO){
 
         return elasticService.searchByDetails(searchDTO.getTerms(), searchDTO);
 
@@ -85,7 +85,7 @@ public class UserController {
     }
 
     @PostMapping("/spellCheckSearch")
-    public Map<String,Object> spellCheckSearch(@RequestBody SearchDTO searchDTO){
+    public List<Hotel> spellCheckSearch(@RequestBody SearchDTO searchDTO){
 
         return elasticService.improvedSearch(searchDTO);
 

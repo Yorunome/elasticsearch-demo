@@ -5,10 +5,10 @@ import com.example.ElasticSearchOperation.dto.HotelDTO;
 import com.example.ElasticSearchOperation.dto.SearchDTO;
 import com.example.ElasticSearchOperation.dto.UpdateDTO;
 import com.example.ElasticSearchOperation.dto.UserDTO;
-import com.example.ElasticSearchOperation.model.Employee;
+//import com.example.ElasticSearchOperation.model.Employee;
 import com.example.ElasticSearchOperation.model.Hotel;
 import com.example.ElasticSearchOperation.model.Word;
-import com.example.ElasticSearchOperation.repository.EmployeeRepository;
+//import com.example.ElasticSearchOperation.repository.EmployeeRepository;
 import com.example.ElasticSearchOperation.repository.HotelRepository;
 import com.example.ElasticSearchOperation.service.ElasticService;
 import org.apache.lucene.search.join.ScoreMode;
@@ -29,6 +29,7 @@ import org.elasticsearch.search.suggest.Suggest;
 import org.elasticsearch.search.suggest.SuggestBuilder;
 import org.elasticsearch.search.suggest.SuggestBuilders;
 import org.elasticsearch.search.suggest.SuggestionBuilder;
+import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
 import org.elasticsearch.search.suggest.term.TermSuggestion;
 import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
 import org.springframework.beans.BeanUtils;
@@ -59,8 +60,8 @@ public class ElasticServiceImpl implements ElasticService {
     @Autowired
     private Client client;
 
-    @Autowired
-    private EmployeeRepository employeeRepository;
+//    @Autowired
+//    private EmployeeRepository employeeRepository;
 
     @Autowired
     private ElasticsearchOperations elasticsearchTemplate;
@@ -74,15 +75,15 @@ public class ElasticServiceImpl implements ElasticService {
     @Autowired
     private HotelRepository hotelRepository;
 
-    @Override
-    public String createEmployee(UserDTO userDTO) {
-
-        Employee employee = new Employee();
-        BeanUtils.copyProperties(userDTO, employee);
-        employeeRepository.save(employee);
-        return "Employee added";
-
-    }
+//    @Override
+//    public String createEmployee(UserDTO userDTO) {
+//
+//        Employee employee = new Employee();
+//        BeanUtils.copyProperties(userDTO, employee);
+//        employeeRepository.save(employee);
+//        return "Employee added";
+//
+//    }
 
 
     @Override
@@ -95,30 +96,30 @@ public class ElasticServiceImpl implements ElasticService {
 
     }
 
-    @Override
-    public Map<String, Object> view(String id) {
-
-        GetResponse getResponse = client.prepareGet("users", "employee", id).get();
-        return getResponse.getSource();
-
-
-    }
-
-    @Override
-    public Map<String, Object> searchByName(String field) {
-
-        Map<String,Object> map = null;
-        SearchResponse response = client.prepareSearch("users")
-                .setTypes("employee")
-                .setSearchType(SearchType.QUERY_THEN_FETCH)
-                .setQuery(QueryBuilders.matchQuery("name", field))
-                .get();
-
-        List<SearchHit> searchHits = Arrays.asList(response.getHits().getHits());
-        map =   searchHits.get(0).getSourceAsMap();
-        return map;
-
-    }
+//    @Override
+//    public Map<String, Object> view(String id) {
+//
+//        GetResponse getResponse = client.prepareGet("users", "employee", id).get();
+//        return getResponse.getSource();
+//
+//
+//    }
+//
+//    @Override
+//    public Map<String, Object> searchByName(String field) {
+//
+//        Map<String,Object> map = null;
+//        SearchResponse response = client.prepareSearch("users")
+//                .setTypes("employee")
+//                .setSearchType(SearchType.QUERY_THEN_FETCH)
+//                .setQuery(QueryBuilders.matchQuery("name", field))
+//                .get();
+//
+//        List<SearchHit> searchHits = Arrays.asList(response.getHits().getHits());
+//        map =   searchHits.get(0).getSourceAsMap();
+//        return map;
+//
+//    }
 
     @Override
     public String update(UpdateDTO updateDTO) {
@@ -148,17 +149,17 @@ public class ElasticServiceImpl implements ElasticService {
         return "Exception";
 
     }
+//
+//    @Override
+//    public String delete(String id) {
+//
+//        DeleteResponse deleteResponse = client.prepareDelete("users", "employee", id).get();
+//        return deleteResponse.getResult().toString();
+//
+//    }
 
     @Override
-    public String delete(String id) {
-
-        DeleteResponse deleteResponse = client.prepareDelete("users", "employee", id).get();
-        return deleteResponse.getResult().toString();
-
-    }
-
-    @Override
-    public Map<String,Object> improvedSearch(SearchDTO searchDTO){
+    public List<Hotel> improvedSearch(SearchDTO searchDTO){
 
         String[] wordList = searchDTO.getTerms().split(" ");
         List <String> searchWords = Arrays.asList(wordList);
@@ -181,66 +182,39 @@ public class ElasticServiceImpl implements ElasticService {
 
 
     @Override
-    public Map<String,Object> searchByDetails(String terms, SearchDTO searchDTO) {
-
-        SearchQuery searchQuery1 = new NativeSearchQueryBuilder().withQuery(QueryBuilders.matchQuery("description", terms)
-                .fuzziness(Fuzziness.AUTO)
-                .prefixLength(3)
-                .minimumShouldMatch(searchDTO.getMinMatchCriteria()))
-                .build();
+    public List<Hotel> searchByDetails(String terms, SearchDTO searchDTO) {
 
 
-        SearchQuery searchQuery2 = new NativeSearchQueryBuilder().withQuery(QueryBuilders
-                        .nestedQuery("userSettings",
-                                     QueryBuilders.matchQuery("hobby", terms),
-                                     ScoreMode.Avg))
-                        .build();
 
-        SearchQuery searchQuery3 = new NativeSearchQueryBuilder()
-                                        .withQuery(QueryBuilders
-                                                .nestedQuery("userSettings",
-                                                        QueryBuilders.boolQuery()
-                                                                  .must(QueryBuilders
-                                                                          .multiMatchQuery(terms, "userSettings.gender", "userSettings.hobby", "userSettings.occupation")
-                                                                                .fuzziness(Fuzziness.AUTO)
-                                                                                .prefixLength(3)
-                                                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria())),
-                                                                          ScoreMode.Max))
+//        SearchQuery searchQuery3 = new NativeSearchQueryBuilder()
+//                                        .withQuery(QueryBuilders
+//                                                .nestedQuery("userSettings",
+//                                                        QueryBuilders.boolQuery()
+//                                                                  .must(QueryBuilders
+//                                                                          .multiMatchQuery(terms, "userSettings.gender", "userSettings.hobby", "userSettings.occupation")
+//                                                                                .fuzziness(Fuzziness.AUTO)
+//                                                                                .prefixLength(3)
+//                                                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria())),
+//                                                                          ScoreMode.Max))
 //
 //                                        .withQuery(QueryBuilders.multiMatchQuery(terms, "name", "description")
 //                                                .fuzziness(Fuzziness.AUTO)
 //                                                .prefixLength(3)
 //                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria()))
-                                        .build();
+//                                        .build();
 
         SearchQuery searchQuery4 = new NativeSearchQueryBuilder()
-                                      .withQuery(QueryBuilders.multiMatchQuery(terms, "name", "locationName")
+                                      .withQuery(QueryBuilders.matchQuery("name", terms)
                                                                                .fuzziness(Fuzziness.AUTO)
                                                                                .prefixLength(3)
-                                                                               .minimumShouldMatch(searchDTO.getMinMatchCriteria())
+                                                                               .minimumShouldMatch(searchDTO.getMinMatchCriteria()))
                                                                               // .tieBreaker(0.5F)
-                                                                               .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS))
+                                                                               //.type(MultiMatchQueryBuilder.Type.CROSS_FIELDS))
                                       .build();
 
-        //List<Employee> employees = elasticsearchTemplate.queryForList(searchQuery4, Employee.class);
         List <Hotel> hotels = elasticsearchTemplate.queryForList(searchQuery4, Hotel.class);
 
-        Map<String,Object> map = null;
-        SearchResponse response = client.prepareSearch("autocomplete-v5-1")
-                .setTypes("hotel")
-                .setSearchType(SearchType.QUERY_THEN_FETCH)
-                .setQuery(QueryBuilders.matchQuery("name", terms))
-                .get();
-
-        List<SearchHit> searchHits = new ArrayList<>();
-
-        if (!(response.getHits().equals(0)))
-            searchHits = Arrays.asList(response.getHits().getHits());
-        if (!(map.isEmpty()))
-            map =   searchHits.get(0).getSourceAsMap();
-
-
-        return map;
+        return hotels;
     }
 
     @Override
@@ -250,19 +224,26 @@ public class ElasticServiceImpl implements ElasticService {
         Word spellCheckWord = new Word(word, suggestedWords);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        SuggestionBuilder termSuggestionBuilder = SuggestBuilders.termSuggestion("name").text(word);
+        SuggestionBuilder termSuggestionBuilder = SuggestBuilders.termSuggestion("name")
+                                                                 .text(word)
+                                                                 //.analyzer("word_join_analyzer")
+                                                                 .minDocFreq(0.1f)
+                                                                 //.suggestMode(TermSuggestionBuilder.SuggestMode.ALWAYS)
+                                                                 .minWordLength(3);
+
         SuggestBuilder suggestBuilder = new SuggestBuilder();
-        suggestBuilder.addSuggestion("suggest_user", termSuggestionBuilder);
+        suggestBuilder.addSuggestion("suggest_user_ver_1", termSuggestionBuilder);
         searchSourceBuilder.suggest(suggestBuilder);
 
         SearchResponse searchResponse = config.client()
-                                        .prepareSearch("autocomplete-v5-1")
+                                        .prepareSearch()
+                                        .setIndices("autocomplete-v5-3").setTypes("hotel")
                                         .suggest(suggestBuilder)
                                         .execute()
                                         .actionGet();
         Suggest suggestions = searchResponse.getSuggest();
 
-        TermSuggestion termSuggestion = suggestions.getSuggestion("suggest_user");
+        TermSuggestion termSuggestion = suggestions.getSuggestion("suggest_user_ver_1");
         for (TermSuggestion.Entry entry: termSuggestion.getEntries()) {
             for (TermSuggestion.Entry.Option option: entry) {
 
