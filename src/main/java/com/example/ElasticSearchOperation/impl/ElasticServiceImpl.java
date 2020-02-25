@@ -155,8 +155,9 @@ public class ElasticServiceImpl implements ElasticService {
 //                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria()))
 //                                        .build();
 
-        SearchQuery searchQuery4 = new NativeSearchQueryBuilder()
-                                      .withQuery(QueryBuilders.multiMatchQuery(terms, "name", "locationName")
+        SearchQuery searchQuery4 = new NativeSearchQueryBuilder().withQuery(QueryBuilders.multiMatchQuery(terms)
+                                                                               .field("name", 1.0f)
+                                                                               .field("locationName", 5.0f)
                                                                                .fuzziness(Fuzziness.AUTO)
                                                                                .prefixLength(3)
                                                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria())
@@ -177,8 +178,8 @@ public class ElasticServiceImpl implements ElasticService {
         List<String> suggestedWords = new ArrayList<>();
         Word spellCheckWord = new Word(word, suggestedWords);
 
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        SuggestionBuilder nameSuggestionBuilder = SuggestBuilders.termSuggestion( "locationName")
+        SearchSourceBuilder searchNameSourceBuilder = new SearchSourceBuilder();
+        SuggestionBuilder nameSuggestionBuilder = SuggestBuilders.termSuggestion( "name")
                                                                  .text(word)
                                                                  //.analyzer("synonyms_analyzer")
                                                                  .analyzer("word_join_analyzer")
@@ -189,20 +190,54 @@ public class ElasticServiceImpl implements ElasticService {
                                                                  .sort(SortBy.FREQUENCY);
 
 
-        SuggestBuilder suggestBuilder = new SuggestBuilder();
-        suggestBuilder.addSuggestion("suggest_name", nameSuggestionBuilder);
-        searchSourceBuilder.suggest(suggestBuilder);
+        SuggestBuilder suggestNameBuilder = new SuggestBuilder();
+        suggestNameBuilder.addSuggestion("suggest_name", nameSuggestionBuilder);
+        searchNameSourceBuilder.suggest(suggestNameBuilder);
 
-        SearchResponse searchResponse = config.client()
+        SearchResponse searchNameResponse = config.client()
                                         .prepareSearch()
                                         .setIndices("autocomplete-v5-5").setTypes("_doc")
-                                        .suggest(suggestBuilder)
+                                        .suggest(suggestNameBuilder)
                                         .execute()
                                         .actionGet();
-        Suggest suggestions = searchResponse.getSuggest();
+        Suggest nameSuggestions = searchNameResponse.getSuggest();
 
-        TermSuggestion termSuggestion = suggestions.getSuggestion("suggest_name");
-        for (TermSuggestion.Entry entry: termSuggestion.getEntries()) {
+        TermSuggestion termNameSuggestion = nameSuggestions.getSuggestion("suggest_name");
+        for (TermSuggestion.Entry entry: termNameSuggestion.getEntries()) {
+            for (TermSuggestion.Entry.Option option: entry) {
+
+                suggestedWords.add(option.getText().string());
+
+            }
+
+        }
+
+        SearchSourceBuilder searchLocationSourceBuilder = new SearchSourceBuilder();
+        SuggestionBuilder locationNameSuggestionBuilder = SuggestBuilders.termSuggestion( "locationName")
+                .text(word)
+                //.analyzer("synonyms_analyzer")
+                .analyzer("word_join_analyzer")
+                .minDocFreq(0.1f)
+                .suggestMode(TermSuggestionBuilder.SuggestMode.MISSING)
+                .minWordLength(2)
+                .size(1)
+                .sort(SortBy.FREQUENCY);
+
+
+        SuggestBuilder suggestLocationBuilder = new SuggestBuilder();
+        suggestLocationBuilder.addSuggestion("suggest_locationName", locationNameSuggestionBuilder);
+        searchLocationSourceBuilder.suggest(suggestLocationBuilder);
+
+        SearchResponse searchLocationResponse = config.client()
+                .prepareSearch()
+                .setIndices("autocomplete-v5-5").setTypes("_doc")
+                .suggest(suggestLocationBuilder)
+                .execute()
+                .actionGet();
+        Suggest locationSuggestions = searchLocationResponse.getSuggest();
+
+        TermSuggestion termLocationSuggestion = locationSuggestions.getSuggestion("suggest_locationName");
+        for (TermSuggestion.Entry entry: termLocationSuggestion.getEntries()) {
             for (TermSuggestion.Entry.Option option: entry) {
 
                 suggestedWords.add(option.getText().string());
