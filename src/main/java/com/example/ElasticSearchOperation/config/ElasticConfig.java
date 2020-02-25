@@ -33,7 +33,7 @@ public class ElasticConfig {
         return port;
     }
 
-    @Value("${elasticsearch.home:/usr/local/Cellar/elasticsearch/5.6.0}")
+    @Value("${elasticsearch.home:/usr/local/Cellar/elasticsearch/7.6.0}")
     private String elasticsearchHome;
 
     @Value("${elasticsearch.cluster.name:elasticsearch_rajeshwari}")

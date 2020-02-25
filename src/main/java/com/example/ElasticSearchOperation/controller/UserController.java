@@ -3,8 +3,6 @@ package com.example.ElasticSearchOperation.controller;
 import com.example.ElasticSearchOperation.dto.HotelDTO;
 import com.example.ElasticSearchOperation.dto.SearchDTO;
 import com.example.ElasticSearchOperation.dto.UpdateDTO;
-import com.example.ElasticSearchOperation.dto.UserDTO;
-//import com.example.ElasticSearchOperation.model.Employee;
 import com.example.ElasticSearchOperation.model.Hotel;
 import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.service.ElasticService;
@@ -13,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 
 @RestController
@@ -26,12 +23,6 @@ public class UserController {
     @Autowired
     private ElasticService elasticService;
 
-//    @PostMapping("/createEmployee")
-//    public String createEmployee(@RequestBody UserDTO userDTO) {
-//
-//        return elasticService.createEmployee(userDTO);
-//
-//    }
 
     @PostMapping("/createHotel")
     public String createHotelLocation(@RequestBody HotelDTO hotelDTO){
@@ -39,21 +30,6 @@ public class UserController {
         return elasticService.createHotelSearch(hotelDTO);
 
     }
-
-//    @GetMapping("/view/{id}")
-//    public Map<String, Object> view(@PathVariable final String id) {
-//
-//        return elasticService.view(id);
-//
-//    }
-
-
-//    @GetMapping("/view/name/{field}")
-//    public Map<String, Object> searchByName(@PathVariable final String field) {
-//
-//        return elasticService.searchByName(field);
-//
-//    }
 
 
     @PostMapping("/update")
@@ -63,12 +39,12 @@ public class UserController {
 
     }
 
-//    @GetMapping("/delete/{id}")
-//    public String delete(@PathVariable final String id) {
-//
-//        return elasticService.delete(id);
-//
-//    }
+    @GetMapping("/delete/{id}")
+    public String delete(@PathVariable final String id) {
+
+        return elasticService.delete(id);
+
+    }
 
     @PostMapping("/search")
     public List<Hotel> searchByDetails(@RequestBody SearchDTO searchDTO){
