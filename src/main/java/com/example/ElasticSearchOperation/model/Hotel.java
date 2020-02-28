@@ -14,7 +14,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(indexName = "autocomplete-v5-5", type = "_doc")
+@Document(indexName = "autocomplete-v5-6", type = "_doc")
 public class Hotel {
 
     @Id

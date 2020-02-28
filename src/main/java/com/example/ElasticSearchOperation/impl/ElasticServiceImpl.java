@@ -19,6 +19,8 @@ import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.search.suggest.*;
 import org.elasticsearch.search.suggest.term.TermSuggestion;
 import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
@@ -30,9 +32,7 @@ import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -42,8 +42,6 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 @Service
 public class ElasticServiceImpl implements ElasticService {
-
-    public static final String TEST_SUGGESTER = "test_suggester";
 
     @Autowired
     private Client client;
@@ -158,14 +156,15 @@ public class ElasticServiceImpl implements ElasticService {
         SearchQuery searchQuery4 = new NativeSearchQueryBuilder().withQuery(QueryBuilders.multiMatchQuery(terms)
                                                                                .field("name", 1.0f)
                                                                                .field("locationName", 5.0f)
+                                                                               .field("type", 2.0f)
                                                                                .fuzziness(Fuzziness.AUTO)
                                                                                .prefixLength(3)
                                                                                .minimumShouldMatch(searchDTO.getMinMatchCriteria())
                                                                                .tieBreaker(0.5F)
                                                                                .analyzer("synonyms_analyzer")
                                                                                .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS))
-
-                                      .build();
+                                                                               .withSort(SortBuilders.fieldSort("nearbyHotel").order(SortOrder.DESC))
+                                                                 .build();
 
         List <Hotel> hotels = elasticsearchTemplate.queryForList(searchQuery4, Hotel.class);
 
@@ -176,18 +175,23 @@ public class ElasticServiceImpl implements ElasticService {
     public Word checkSpellErrors(String word){
 
         List<String> suggestedWords = new ArrayList<>();
+        HashMap <Float, String> scoredWords = new HashMap<>();
         Word spellCheckWord = new Word(word, suggestedWords);
+
+        if (word.length() <= 2) return spellCheckWord;
 
         SearchSourceBuilder searchNameSourceBuilder = new SearchSourceBuilder();
         SuggestionBuilder nameSuggestionBuilder = SuggestBuilders.termSuggestion( "name")
                                                                  .text(word)
                                                                  //.analyzer("synonyms_analyzer")
                                                                  .analyzer("word_join_analyzer")
-                                                                 .minDocFreq(0.1f)
-                                                                 .suggestMode(TermSuggestionBuilder.SuggestMode.MISSING)
+                                                                 //.minDocFreq(0.1f)
+                                                                 .suggestMode(TermSuggestionBuilder.SuggestMode.POPULAR)
+                                                                 .prefixLength(2)
+                                                                 .maxTermFreq(0.1f)
                                                                  .minWordLength(2)
-                                                                 .size(1)
-                                                                 .sort(SortBy.FREQUENCY);
+                                                                 //.size(1)
+                                                                 .sort(SortBy.SCORE);
 
 
         SuggestBuilder suggestNameBuilder = new SuggestBuilder();
@@ -196,7 +200,7 @@ public class ElasticServiceImpl implements ElasticService {
 
         SearchResponse searchNameResponse = config.client()
                                         .prepareSearch()
-                                        .setIndices("autocomplete-v5-5").setTypes("_doc")
+                                        .setIndices("autocomplete-v5-6").setTypes("_doc")
                                         .suggest(suggestNameBuilder)
                                         .execute()
                                         .actionGet();
@@ -206,7 +210,8 @@ public class ElasticServiceImpl implements ElasticService {
         for (TermSuggestion.Entry entry: termNameSuggestion.getEntries()) {
             for (TermSuggestion.Entry.Option option: entry) {
 
-                suggestedWords.add(option.getText().string());
+                //suggestedWords.add(option.getText().string());
+                scoredWords.put(option.getScore(), option.getText().string());
 
             }
 
@@ -218,10 +223,12 @@ public class ElasticServiceImpl implements ElasticService {
                 //.analyzer("synonyms_analyzer")
                 .analyzer("word_join_analyzer")
                 .minDocFreq(0.1f)
-                .suggestMode(TermSuggestionBuilder.SuggestMode.MISSING)
+                .suggestMode(TermSuggestionBuilder.SuggestMode.POPULAR)
                 .minWordLength(2)
-                .size(1)
-                .sort(SortBy.FREQUENCY);
+                .maxTermFreq(0.1f)
+                .prefixLength(2)
+                //.size(1)
+                .sort(SortBy.SCORE);
 
 
         SuggestBuilder suggestLocationBuilder = new SuggestBuilder();
@@ -230,7 +237,7 @@ public class ElasticServiceImpl implements ElasticService {
 
         SearchResponse searchLocationResponse = config.client()
                 .prepareSearch()
-                .setIndices("autocomplete-v5-5").setTypes("_doc")
+                .setIndices("autocomplete-v5-6").setTypes("_doc")
                 .suggest(suggestLocationBuilder)
                 .execute()
                 .actionGet();
@@ -240,11 +247,21 @@ public class ElasticServiceImpl implements ElasticService {
         for (TermSuggestion.Entry entry: termLocationSuggestion.getEntries()) {
             for (TermSuggestion.Entry.Option option: entry) {
 
-                suggestedWords.add(option.getText().string());
+                //suggestedWords.add(option.getText().string());
+                scoredWords.put(option.getScore(), option.getText().string());
 
             }
 
         }
+
+        LinkedHashMap <Float, String> sortedScoredMap = new LinkedHashMap<>();
+
+        scoredWords.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey(Comparator.reverseOrder()))
+                .forEachOrdered(x -> sortedScoredMap.put(x.getKey(), x.getValue()));
+
+        suggestedWords = sortedScoredMap.values().stream().collect(Collectors.toList());
 
         spellCheckWord.setSpellCheckWords(suggestedWords);
         return spellCheckWord;
