@@ -16,8 +16,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @Configuration
-@EnableElasticsearchRepositories(basePackages = "com.example.ElasticSearchOperation.repository")
-@ComponentScan(basePackages = {"com.example.ElasticSearchOperation.service"})
 public class ElasticConfig {
 
     @Value("${elasticsearch.host:localhost}")
