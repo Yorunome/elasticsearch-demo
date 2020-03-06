@@ -9,6 +9,7 @@ import com.example.ElasticSearchOperation.impl.constants.SearchFields;
 import com.example.ElasticSearchOperation.model.Hotel;
 import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.model.response.BaseResponse;
+import com.example.ElasticSearchOperation.model.response.SearchHotelResponse;
 import com.example.ElasticSearchOperation.service.ElasticService;
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -25,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
+import rx.Single;
 
 import java.io.IOException;
 import java.util.*;
@@ -135,6 +137,37 @@ public class ElasticServiceImpl implements ElasticService {
         SearchQuery searchQuery = searchQueryMaker(finalSearchString, searchDTO);
         List <Hotel> hotels = elasticsearchTemplate.queryForList(searchQuery, Hotel.class);
         return new BaseResponse<>(hotels);
+
+    }
+
+    @Override
+    public Single<BaseResponse<List<Hotel>>> searchWithReactive(SearchDTO searchDTO){
+
+        return Single.create(singleEmitter -> {
+            try {
+                String[] wordList = searchDTO.getTerms().split(" ");
+                List<String> searchWords = Arrays.asList(wordList);
+                List<String> spellCheckedWords = new ArrayList<>();
+
+                for (String word : searchWords) {
+
+                    List<String> getWords = checkSpellErrors(word).getData().getSpellCheckWords();
+                    if (!(getWords.isEmpty())) {
+                        String suggestedText = getWords.get(0);
+                        spellCheckedWords.add(suggestedText);
+                    } else spellCheckedWords.add(word);
+                }
+
+                String finalSearchString = spellCheckedWords.stream().collect(Collectors.joining(" "));
+                SearchQuery searchQuery = searchQueryMaker(finalSearchString, searchDTO);
+                List<Hotel> hotels = elasticsearchTemplate.queryForList(searchQuery, Hotel.class);
+                BaseResponse<List<Hotel>> results = new BaseResponse<>(hotels);
+                singleEmitter.onSuccess(results);
+            } catch (Exception e) {
+                log.error("Error getAutocompleteListElasticsearch : {}", e);
+                singleEmitter.onError(e);
+            }
+        });
 
     }
 

@@ -6,7 +6,9 @@ import com.example.ElasticSearchOperation.dto.UpdateDTO;
 import com.example.ElasticSearchOperation.model.Hotel;
 import com.example.ElasticSearchOperation.model.Word;
 import com.example.ElasticSearchOperation.model.response.BaseResponse;
+import com.example.ElasticSearchOperation.model.response.SearchHotelResponse;
 import org.elasticsearch.search.aggregations.Aggregation;
+import rx.Single;
 
 import java.util.List;
 
@@ -21,6 +23,8 @@ public interface ElasticService {
     BaseResponse improvedSearch(SearchDTO searchDTO);
 
     String createHotelSearch(HotelDTO hotelDTO);
+
+    Single<BaseResponse<List<Hotel>>> searchWithReactive(SearchDTO searchDTO);
 
 
 }
